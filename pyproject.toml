@@ -1,0 +1,35 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "scaffold"
+dynamic = ["version"]
+authors = [
+  { name = "Konstantinos Despoinidis", email = "despoinidisk@gmail.com" },
+]
+description = "Opinionated C project starter"
+readme = "README.md"
+license = { text = "MIT" }
+requires-python = ">=3.11"
+
+classifiers = [
+  "License :: OSI Approved :: MIT License",
+  "Programming Language :: Python :: 3",
+  "Typing :: Typed",
+]
+
+dependencies = [
+]
+
+[tool.setuptools.packages.find]
+where = ["."]
+
+[tool.setuptools.dynamic]
+version = { attr = "scaffold.__version__" }
+
+[tool.setuptools.package-data]
+scaffold = ["py.typed"]
+
+[project.scripts]
+scaffold = "scaffold.cli:main"
