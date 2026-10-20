@@ -12,6 +12,7 @@ import os
 from pathlib import Path
 from typing import Literal
 
+from config import settings
 
 class ProjectType(Enum):
     LIBRARY = "library"
@@ -130,11 +131,17 @@ class ProjectBuilder:
             abs_dir = os.path.join(self.root, rel_dir)
             os.makedirs(abs_dir, exist_ok=True)
 
+        default_version = settings.default_version.split(".")
+
         # Prepare template context variables based on parsed dependencies
         template_context = {
             "dep_cli": "cli.h" in dependencies,
             "dep_logging": "logging.h" in dependencies,
-            "name": self.root,
+            "name": self.root.split("/")[-1],
+            "type": self.type.value,
+            "default_version_major": default_version[0],
+            "default_version_minor": default_version[1],
+            "default_version_patch": default_version[2],
         }
 
         for project_file in files:
@@ -142,11 +149,8 @@ class ProjectBuilder:
             if parent_dir:
                 os.makedirs(parent_dir, exist_ok=True)
             
-            # Determine template name based on file type or name
-            # e.g., main.c -> main.c, Makefile -> Makefile
             template_name = project_file.name
             
-            # Optional: handle files that might not have a template yet gracefully
             try:
                 rendered = self._get_content(template_name, **template_context)
             except FileNotFoundError:
@@ -154,6 +158,8 @@ class ProjectBuilder:
 
             with open(project_file.absolute, "w", encoding="utf-8") as f:
                 f.write(rendered)
+
+
 
         print(f"Successfully created {len(dirs)} directories and {len(files)} files.")
 

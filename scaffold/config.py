@@ -5,7 +5,8 @@ from pydantic_settings import (
     SettingsConfigDict,
 )
 
-CONFIG_DIR = "~/.config"
+# CONFIG_DIR = "~/.config"
+CONFIG_DIR = "."
 CONFIG_FILE = "scaffold.yaml"
 
 
@@ -26,8 +27,9 @@ class YamlConfigSettingsSource(PydanticBaseSettingsSource):
 
 
 class Settings(BaseSettings):
-    app_name: str
     debug: bool = False
+    deps_dir: str = "deps"
+    default_version: str = "0.1.0"
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
@@ -44,5 +46,11 @@ class Settings(BaseSettings):
             init_settings,
             env_settings,
             dotenv_settings,
-            YamlConfigSettingsSource(settings_cls, str(CONFIG_DIR / CONFIG_FILE))
+            YamlConfigSettingsSource(settings_cls, f"{CONFIG_DIR}/{CONFIG_FILE}")
         )
+
+
+settings = Settings()
+
+if __name__ == "__main__":
+    print(settings)
