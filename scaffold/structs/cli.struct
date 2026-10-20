@@ -1,0 +1,13 @@
+# cli.struct
+
+.gitignore
+README.md
+Makefile
+include/
+    version.h
+src/
+    main.c
+
+?dep:cli.h
+?dep:ansi.h
+?dep:logging.h

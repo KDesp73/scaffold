@@ -20,6 +20,9 @@ classifiers = [
 ]
 
 dependencies = [
+    "jinja2",
+    "pydantic-settings",
+    "pyyaml",
 ]
 
 [tool.setuptools.packages.find]

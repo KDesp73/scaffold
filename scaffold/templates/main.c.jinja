@@ -1,0 +1,74 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include "version.h"
+
+{% if dep_cli %}
+#define CLI_IMPLEMENTATION
+#include "extern/cli.h"
+{% endif %}
+{% if dep_logging %}
+#define LOGGING_IMPLEMENTATION
+#include "extern/logging.h"
+{% endif %}
+
+
+int main(int argc, char** argv)
+{
+{% if dep_cli %}
+    cli_args_t args = cli_args_make(
+        cli_arg_new('h', "help", "Prints this message", no_argument),
+        cli_arg_new('v', "version", "Prints the version and exits", no_argument),
+        NULL
+    );
+
+    char* command_str = argc == 1 ? NULL : argv[1];
+
+    int opt;
+    LOOP_ARGS(opt, args) {
+        switch (opt) {
+            case 'h':
+                cli_help(args, "calendar <COMMAND> <OPTS>", "Written by KDesp73");
+                goto success;
+            case 'v':
+                printf("%s\n", VERSION_STRING);
+                goto success;
+            default:
+                break;
+        }
+    }
+
+    Dispatcher dispatcher = {0};
+    dispatcher_init(&dispatcher);
+#define COMMAND(cmd, h) dispatcher_add(&dispatcher, #cmd, h);
+#include "commands.inc"
+#undef COMMAND
+
+    HandlerFunc handler = dispatcher_find(&dispatcher, command_str);
+    if(!handler) {
+        if(!command_str) ERRO("Please provide a command");
+        else {
+{% if dep_logging %}
+            ERRO("Unknown command: `%s`", command_str);
+{% else %}
+            fprintf(stderr, "Unknown command: `%s`\n", command_str);
+{% endif %}
+        }
+        goto error;
+    }
+    
+    // Make sure 'ctx' is defined or passed properly here!
+    // if(!handler(ctx)) goto error; 
+
+
+success:
+    cli_args_free(&args);
+    return 0;
+
+error:
+    cli_args_free(&args);
+    return 1;
+{% else %}
+    printf("Hello from scaffold!n");
+    return 0;
+{% endif %}
+}
