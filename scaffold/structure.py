@@ -42,7 +42,7 @@ class ProjectBuilder:
         self.type = project_type
 
     def _recipe(self) -> str:
-        structfile = f"scaffold/structs/{self.type.value}.struct"
+        structfile = f"structs/{self.type.value}.struct"
         with open(structfile, "r", encoding="utf-8") as file:
             return file.read()
 
@@ -66,7 +66,7 @@ class ProjectBuilder:
     def _get_content(self, filename: str, **kwargs) -> str:
         from jinja2 import Template
 
-        with open(f"scaffold/templates/{filename}.jinja") as file:
+        with open(f"templates/{filename}.jinja") as file:
             template_string = file.read()
 
         template = Template(template_string)
@@ -161,7 +161,7 @@ class ProjectBuilder:
 if __name__ == "__main__":
     builder = ProjectBuilder(
         root="./example",
-        project_type=ProjectType.CLI
+        project_type=ProjectType.WORKSPACE
     )
     
     files, dirs, dependencies = builder.structure()

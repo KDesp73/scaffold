@@ -1,16 +1,14 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "version.h"
-
 {% if dep_cli %}
 #define CLI_IMPLEMENTATION
-#include "extern/cli.h"
+#include "io/cli.h"
 {% endif %}
 {% if dep_logging %}
 #define LOGGING_IMPLEMENTATION
-#include "extern/logging.h"
+#include "io/logging.h"
 {% endif %}
-
 
 int main(int argc, char** argv)
 {

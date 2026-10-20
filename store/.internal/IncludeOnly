@@ -1,0 +1,16 @@
+fetch_io() {
+    local destination="$1"
+    local io_lib="$2"
+    local remote_file="https://raw.githubusercontent.com/KDesp73/IncludeOnly/refs/heads/main/libs/$io_lib"
+    local local_file="io/$io_lib" 
+    
+    mkdir -p "$destination/$(dirname "$local_file")"
+
+    if wget -q "$remote_file" -O "$destination/$local_file"; then
+        echo "INFO: Fetched IncludeOnly library '$io_lib'"
+    else
+        echo "ERROR: Failed to fetch library '$io_lib' from repository." >&2
+        return 1
+    fi
+}
+

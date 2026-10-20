@@ -8,6 +8,6 @@ include/
 src/
     main.c
 
-?dep:cli.h
-?dep:ansi.h
+!dep:cli.h
+!dep:ansi.h
 ?dep:logging.h

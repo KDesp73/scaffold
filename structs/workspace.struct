@@ -1,0 +1,20 @@
+# workspace.struct
+
+.gitignore
+README.md
+Makefile
+apps/
+    cli/main.c
+    test/main.c
+include/
+    version.h
+tests/
+    test_example.c
+src/
+
+
+?dep:cli.h
+?dep:ansi.h
+?dep:logging.h
+?dep:test.h
+?dep:raylib

@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+
+DESTINATION="$1"
+VERSION=${2:-"6.2"}
+PLATFORM=${3:-"linux_amd64"}
+
+REMOTE_TAR="https://github.com/raysan5/raylib/releases/download/$VERSION/raylib-${VERSION}_${PLATFORM}.tar.gz"
+LOCAL_TAR="raylib.tar.gz"
+
+# Ensure the destination directory exists
+mkdir -p "$DESTINATION"
+
+# Download the tarball
+if wget "$REMOTE_TAR" -O "$LOCAL_TAR"; then
+    # Extract into the destination folder
+    tar xzf "$LOCAL_TAR" -C "$DESTINATION"
+    
+    # Clean up the downloaded archive
+    rm "$LOCAL_TAR"
+    echo "INFO: Successfully downloaded and extracted raylib v$VERSION for $PLATFORM"
+else
+    echo "ERROR: Failed to download raylib version $VERSION for platform $PLATFORM." >&2
+    rm -f "$LOCAL_TAR"
+    exit 1
+fi
