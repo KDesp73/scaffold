@@ -26,6 +26,6 @@ apps/
     gui/main.c
 
 !dep:ansi.h
-?dep:cli.h
+!dep:cli.h
 ?dep:logging.h
 ?dep:raylib

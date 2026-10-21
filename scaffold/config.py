@@ -5,8 +5,7 @@ from pydantic_settings import (
     SettingsConfigDict,
 )
 
-# CONFIG_DIR = "~/.config"
-CONFIG_DIR = "."
+CONFIG_DIR = "~/.config"
 CONFIG_FILE = "scaffold.yaml"
 
 
