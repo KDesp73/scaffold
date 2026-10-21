@@ -1,0 +1,17 @@
+# lib.struct
+
+.gitignore
+README.md
+Makefile
+include/
+    version.h
+    header1.h
+    header2.h
+src/
+    file1.c
+    file2.c
+tests/
+    test1.c
+
+?dep:ansi.h
+?dep:logging.h

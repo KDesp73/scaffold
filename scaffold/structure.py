@@ -1,21 +1,26 @@
-"""
-Struct Format:
+"""Struct Format:
 #                                       -> comment (ignore)
 !dep:                                   -> fixed dependency
 ?dep:                                   -> optional dependency
 no prefix, with or without indentation  -> file | directory
 """
 
+from __future__ import annotations
+
 from dataclasses import dataclass
 from enum import Enum
-import os
+import re
 from pathlib import Path
-from typing import Literal
 
-from config import settings
+from jinja2 import Environment, FileSystemLoader, TemplateNotFound
+
+from scaffold.config import settings
+from scaffold.resources import STRUCTS_DIR, TEMPLATES_DIR
+from scaffold.store import Store
+
 
 class ProjectType(Enum):
-    LIBRARY = "library"
+    LIBRARY = "lib"
     CLI = "cli"
     WORKSPACE = "workspace"
     GUI = "gui"
@@ -23,64 +28,58 @@ class ProjectType(Enum):
 
 @dataclass
 class ProjectFile:
-    absolute: str
-    relative: str
+    absolute: Path
+    relative: Path
     name: str
-    type: Literal[
-        "gitignore",
-        "license",
-        "main",
-        "make",
-        "readme",
-        "unknown",
-        "version",
-    ]
+
+
+@dataclass
+class StructDep:
+    name: str
+    required: bool
+
+
+def _guard_for(filename: str) -> str:
+    """HEADER1_H, MAIN_C, ..."""
+    return re.sub(r"[^0-9A-Za-z]", "_", filename).upper() + "_H"
 
 
 class ProjectBuilder:
-    def __init__(self, root: str, project_type: ProjectType):
-        self.root = root
+    def __init__(
+        self,
+        root: str | Path,
+        project_type: ProjectType,
+        deps: list[str] | None = None,
+        store: Store | None = None,
+    ):
+        self.root = Path(root)
         self.type = project_type
+        self.requested_deps = list(deps or [])
+        self.store = store or Store()
+
+        self._env = Environment(
+            loader=FileSystemLoader(str(TEMPLATES_DIR)),
+            trim_blocks=True,
+            lstrip_blocks=True,
+            keep_trailing_newline=True,
+        )
 
     def _recipe(self) -> str:
-        structfile = f"structs/{self.type.value}.struct"
-        with open(structfile, "r", encoding="utf-8") as file:
-            return file.read()
+        structfile = STRUCTS_DIR / f"{self.type.value}.struct"
+        if not structfile.is_file():
+            raise FileNotFoundError(
+                f"No struct file for project type '{self.type.value}' "
+                f"(expected {structfile})"
+            )
+        return structfile.read_text(encoding="utf-8")
 
-    def _get_file_type(self, name: str) -> str:
-        """Helper to map filename to allowed ProjectFile type literals."""
-        lower = name.lower()
-        if "gitignore" in lower:
-            return "gitignore"
-        elif "license" in lower:
-            return "license"
-        elif "main" in lower:
-            return "main"
-        elif "make" in lower:
-            return "make"
-        elif "readme" in lower:
-            return "readme"
-        elif "version" in lower:
-            return "version"
-        return "unknown"
-
-    def _get_content(self, filename: str, **kwargs) -> str:
-        from jinja2 import Template
-
-        with open(f"templates/{filename}.jinja") as file:
-            template_string = file.read()
-
-        template = Template(template_string)
-        return template.render(kwargs)
-
-    def structure(self) -> tuple[list[ProjectFile], list[str], list[str]]:
-        recipe = self._recipe()
-        lines = recipe.split("\n")
+    def structure(self) -> tuple[list[ProjectFile], list[Path], list[StructDep]]:
+        lines = self._recipe().split("\n")
 
         files: list[ProjectFile] = []
-        dirs: list[str] = []
-        dependencies: list[str] = []
-        
+        dirs: list[Path] = []
+        dependencies: list[StructDep] = []
+
         path_stack: list[tuple[int, str]] = []
 
         for line in lines:
@@ -92,7 +91,9 @@ class ProjectBuilder:
             # Handle dependencies (!dep: and ?dep:)
             if stripped.startswith(("!dep:", "?dep:")):
                 dep_name = stripped.split(":", 1)[1].strip()
-                dependencies.append(dep_name)
+                dependencies.append(
+                    StructDep(name=dep_name, required=stripped.startswith("!dep:"))
+                )
                 continue
 
             # Calculate indentation level (number of leading spaces)
@@ -107,70 +108,132 @@ class ProjectBuilder:
 
             path_stack.append((indent, name))
 
-            # Build relative and absolute paths using the path stack
-            rel_parts = [p[1] for p in path_stack]
-            relative_path = os.path.join(*rel_parts)
-            absolute_path = os.path.join(self.root, relative_path)
+            relative = Path(*[p[1] for p in path_stack])
 
             if is_dir:
-                dirs.append(relative_path)
+                dirs.append(relative)
             else:
-                project_file = ProjectFile(
-                    absolute=absolute_path,
-                    relative=relative_path,
-                    name=name,
-                    type=self._get_file_type(name),
+                files.append(
+                    ProjectFile(
+                        absolute=self.root / relative,
+                        relative=relative,
+                        name=relative.name,
+                    )
                 )
-                files.append(project_file)
 
         return files, dirs, dependencies
 
-    def create(self, files: list[ProjectFile], dirs: list[str], dependencies: list[str]):
+    def _template_candidates(self, relative: Path) -> list[str]:
+        """Template lookup order, most specific first.
+
+        1. templates/<type>/<full relative path>.jinja   (workspace/apps/cli/main.c.jinja)
+        2. templates/<full relative path>.jinja          (src/main.c.jinja)
+        3. templates/<type>/<basename>.jinja             (gui/main.c.jinja)
+        4. templates/<basename>.jinja                    (main.c.jinja)
+        """
+        rel = relative.as_posix()
+        t = self.type.value
+        return [
+            f"{t}/{rel}.jinja",
+            f"{rel}.jinja",
+            f"{t}/{relative.name}.jinja",
+            f"{relative.name}.jinja",
+        ]
+
+    def _get_content(self, relative: Path, **context) -> str:
+        for candidate in self._template_candidates(relative):
+            try:
+                template = self._env.get_template(candidate)
+            except TemplateNotFound:
+                continue
+            return template.render(**context)
+
+        print(f"[WARN] No template found for '{relative}', writing empty file")
+        return ""
+
+    def _active_deps(self, struct_deps: list[StructDep]) -> list[str]:
+        """Fixed deps are always active; optional ones only if requested.
+        Requested deps not mentioned in the struct are added too (if in store)."""
+        active: list[str] = []
+
+        def add(key: str) -> None:
+            if key not in active:
+                active.append(key)
+
+        for dep in struct_deps:
+            if dep.required or dep.name in self.requested_deps:
+                add(dep.name)
+        for key in self.requested_deps:
+            if self.store.get(key) is None:
+                print(f"[WARN] Dependency '{key}' not found in store, skipping")
+                continue
+            add(key)
+
+        return active
+
+    def create(
+        self,
+        files: list[ProjectFile],
+        dirs: list[Path],
+        struct_deps: list[StructDep],
+    ) -> None:
         """Creates the parsed directories and files on disk."""
         for rel_dir in dirs:
-            abs_dir = os.path.join(self.root, rel_dir)
-            os.makedirs(abs_dir, exist_ok=True)
+            (self.root / rel_dir).mkdir(parents=True, exist_ok=True)
 
-        default_version = settings.default_version.split(".")
+        deps_dir = settings.deps_dir
+        active_deps = self._active_deps(struct_deps)
 
-        # Prepare template context variables based on parsed dependencies
-        template_context = {
-            "dep_cli": "cli.h" in dependencies,
-            "dep_logging": "logging.h" in dependencies,
-            "name": self.root.split("/")[-1],
+        for key in active_deps:
+            if not self.store.install(key, self.root, scripts_dir="tools/deps"):
+                print(f"[WARN] Could not install dependency '{key}' from the store")
+
+        dep_cflags, dep_ldflags = self.store.dep_flags(active_deps, deps_dir)
+
+        version = settings.default_version.split(".")
+        if len(version) != 3:
+            print(
+                f"[WARN] default_version '{settings.default_version}' is not X.Y.Z, "
+                "falling back to 0.1.0"
+            )
+            version = ["0", "1", "0"]
+
+        base_context: dict = {
+            "name": self.root.name,
             "type": self.type.value,
-            "default_version_major": default_version[0],
-            "default_version_minor": default_version[1],
-            "default_version_patch": default_version[2],
+            "version": settings.default_version,
+            "default_version_major": version[0],
+            "default_version_minor": version[1],
+            "default_version_patch": version[2],
+            "deps_dir": deps_dir,
+            "deps": active_deps,
+            "dep_cflags": " ".join(dep_cflags),
+            "dep_ldflags": " ".join(dep_ldflags),
         }
+        for key in active_dep_stems(active_deps):
+            base_context[f"dep_{key}"] = True
 
         for project_file in files:
-            parent_dir = os.path.dirname(project_file.absolute)
-            if parent_dir:
-                os.makedirs(parent_dir, exist_ok=True)
-            
-            template_name = project_file.name
-            
-            try:
-                rendered = self._get_content(template_name, **template_context)
-            except FileNotFoundError:
-                rendered = ""  # Fallback to empty file if no template exists
+            project_file.absolute.parent.mkdir(parents=True, exist_ok=True)
 
-            with open(project_file.absolute, "w", encoding="utf-8") as f:
-                f.write(rendered)
+            context = dict(base_context)
+            context["guard"] = _guard_for(project_file.name)
+
+            # Files inside libs/<name>/ are part of that sub-library;
+            # give templates the library's name, not the workspace's.
+            parts = project_file.relative.parts
+            if len(parts) >= 2 and parts[0] == "libs":
+                context["name"] = parts[1]
+
+            rendered = self._get_content(project_file.relative, **context)
+            project_file.absolute.write_text(rendered, encoding="utf-8")
+
+        print(
+            f"Successfully created {len(dirs)} directories and {len(files)} files "
+            f"in '{self.root}'."
+        )
 
 
-
-        print(f"Successfully created {len(dirs)} directories and {len(files)} files.")
-
-
-if __name__ == "__main__":
-    builder = ProjectBuilder(
-        root="./example",
-        project_type=ProjectType.WORKSPACE
-    )
-    
-    files, dirs, dependencies = builder.structure()
-    print(f"Parsed: {len(dirs)} dirs, {len(files)} files, {len(dependencies)} deps.")
-
-    builder.create(files, dirs, dependencies)
+def active_dep_stems(deps: list[str]) -> list[str]:
+    """'cli.h' -> 'cli', 'raylib' -> 'raylib'"""
+    return [Path(dep).stem for dep in deps]

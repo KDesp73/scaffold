@@ -32,7 +32,14 @@ where = ["."]
 version = { attr = "scaffold.__version__" }
 
 [tool.setuptools.package-data]
-scaffold = ["py.typed"]
+scaffold = [
+    "py.typed",
+    "structs/*.struct",
+    "templates/**/*.jinja",
+    "templates/.gitignore.jinja",
+    "store/**/*",
+    "store/.internal/*",
+]
 
 [project.scripts]
 scaffold = "scaffold.cli:main"

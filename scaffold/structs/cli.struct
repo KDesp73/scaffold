@@ -5,8 +5,12 @@ README.md
 Makefile
 include/
     version.h
+    header1.h
+    header2.h
 src/
     main.c
+    file1.c
+    file2.c
 
 !dep:cli.h
 !dep:ansi.h

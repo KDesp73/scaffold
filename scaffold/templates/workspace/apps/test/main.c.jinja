@@ -1,0 +1,12 @@
+#include <assert.h>
+#include <stdio.h>
+
+#include "core.h"
+
+int main(void)
+{
+    assert(core_init() == 0);
+    assert(core_name() != NULL);
+    printf("workspace tests passed!\n");
+    return 0;
+}

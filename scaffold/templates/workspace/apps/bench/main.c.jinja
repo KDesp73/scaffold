@@ -1,0 +1,26 @@
+#include <stdio.h>
+#include <time.h>
+
+#include "core.h"
+
+#define BENCH_ITERS 100000000
+
+int main(void)
+{
+    if (core_init() != 0) {
+        fprintf(stderr, "Failed to initialize core\n");
+        return 1;
+    }
+
+    clock_t start = clock();
+    volatile double sink = 0.0;
+    for (long i = 0; i < BENCH_ITERS; i++) {
+        sink += (double)i * 0.5;
+    }
+    clock_t end = clock();
+
+    double secs = (double)(end - start) / CLOCKS_PER_SEC;
+    printf("[bench] %ld iterations in %.3f s (sink=%.1f)\n",
+           (long)BENCH_ITERS, secs, (double)sink);
+    return 0;
+}

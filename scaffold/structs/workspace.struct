@@ -1,0 +1,31 @@
+# workspace.struct
+
+.gitignore
+README.md
+Makefile
+libs/
+    core_lib/
+        Makefile
+        include/
+            core.h
+        src/
+            core.c
+include/
+    version.h
+    header1.h
+    header2.h
+src/
+    file1.c
+    file2.c
+tests/
+    test1.c
+apps/
+    cli/main.c
+    test/main.c
+    bench/main.c
+    gui/main.c
+
+!dep:ansi.h
+?dep:cli.h
+?dep:logging.h
+?dep:raylib

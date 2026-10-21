@@ -1,0 +1,11 @@
+# gui.struct
+
+.gitignore
+README.md
+Makefile
+include/
+    version.h
+src/
+    main.c
+
+!dep:raylib

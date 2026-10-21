@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+DESTINATION="$1"
+VERSION="${2:-}"
+
+source "$SCRIPT_DIR/../.internal/IncludeOnly"
+
+fetch_io "$DESTINATION" "cli.h"

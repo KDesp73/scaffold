@@ -1,0 +1,23 @@
+#ifndef {{ guard }}
+#define {{ guard }}
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+/**
+ * @brief Initializes the core library.
+ * @return 0 on success, non-zero on failure.
+ */
+int core_init(void);
+
+/**
+ * @brief Returns the library name.
+ */
+const char* core_name(void);
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif /* {{ guard }} */
