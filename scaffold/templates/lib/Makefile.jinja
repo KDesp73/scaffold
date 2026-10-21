@@ -25,8 +25,6 @@ TESTS = $(patsubst $(TEST_DIR)/%.c,$(BUILD_DIR)/%,$(wildcard $(TEST_DIR)/*.c))
 
 CFLAGS += -I$(INCLUDE_DIR) -fPIC -MMD -MP
 {% if deps %}
-DEPS = {{ deps | join(' ') }}
-DEPS_SCRIPTS_DIR = tools/deps
 CFLAGS  += -I$(DEPS_DIR) {{ dep_cflags }}
 LDFLAGS += {{ dep_ldflags }}
 {% endif %}
@@ -76,15 +74,6 @@ test: $(TESTS) ## Build and run all tests
 	done
 
 -include $(DEP)
-
-{% if deps %}
-.PHONY: fetch
-fetch: ## Fetch all dependencies into $(DEPS_DIR)
-	@set -e; for dep in $(DEPS); do \
-		echo "[INFO] Fetching $$dep"; \
-		bash $(DEPS_SCRIPTS_DIR)/$$dep/fetch $(DEPS_DIR); \
-	done
-{% endif %}
 
 .PHONY: clean
 clean: ## Remove all build files

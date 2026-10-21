@@ -15,7 +15,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from pathlib import Path
-import shutil
+import subprocess
 
 from scaffold.resources import STORE_DIR
 
@@ -59,25 +59,34 @@ class Store:
     def get(self, key: str) -> Dependency | None:
         return self.registry.get(key)
 
-    def install(self, key: str, project_root: Path, scripts_dir: str = "tools/deps") -> bool:
-        """Copy the package's fetch script (and flags) into the project.
+    def fetch(
+        self,
+        key: str,
+        destination: Path,
+        version: str | None = None,
+        platform: str | None = None,
+    ) -> bool:
+        """Run the package's fetch script to download the dependency.
 
-        The `.internal` helper directory is copied alongside so the fetch
-        scripts keep working standalone (they `source ../.internal/...`).
+        The script receives the destination as its first argument, followed
+        by the optional version and platform. The script's output is streamed
+        as-is. Returns False if the package is unknown, has no fetch script,
+        or the script fails.
         """
         dep = self.get(key)
-        if dep is None:
+        if dep is None or not dep.has_fetch:
             return False
 
-        dest = project_root / scripts_dir / key
-        shutil.copytree(dep.path, dest, dirs_exist_ok=True)
+        if platform is not None and version is None:
+            version = ""
 
-        internal = self.root / ".internal"
-        if internal.is_dir():
-            shutil.copytree(
-                internal, project_root / scripts_dir / ".internal", dirs_exist_ok=True
-            )
-        return True
+        cmd = ["bash", str(dep.path / "fetch"), str(destination)]
+        if version is not None:
+            cmd.append(version)
+        if platform is not None:
+            cmd.append(platform)
+
+        return subprocess.run(cmd).returncode == 0
 
     def dep_flags(self, keys: list[str], deps_dir: str) -> tuple[list[str], list[str]]:
         """Return (cflags, ldflags) for the given deps, `{deps}` substituted."""

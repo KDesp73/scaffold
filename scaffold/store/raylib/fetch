@@ -3,7 +3,17 @@ set -euo pipefail
 
 DESTINATION="$1"
 VERSION=${2:-"6.2"}
-PLATFORM=${3:-"linux_amd64"}
+
+# Default platform based on the host (overridable via the 3rd argument)
+if [ -n "${3:-}" ]; then
+    PLATFORM="$3"
+elif [ "$(uname -s)" = "Darwin" ]; then
+    PLATFORM="macos"
+elif [ "$(uname -m)" = "aarch64" ] || [ "$(uname -m)" = "arm64" ]; then
+    PLATFORM="linux_arm64"
+else
+    PLATFORM="linux_amd64"
+fi
 
 REMOTE_TAR="https://github.com/raysan5/raylib/releases/download/$VERSION/raylib-${VERSION}_${PLATFORM}.tar.gz"
 LOCAL_TAR="$DESTINATION/raylib.tar.gz"
@@ -15,11 +25,27 @@ cleanup() { rm -f "$LOCAL_TAR"; }
 trap cleanup EXIT
 
 # Download the tarball
-if wget -q "$REMOTE_TAR" -O "$LOCAL_TAR"; then
-    # Extract into the destination folder
-    tar xzf "$LOCAL_TAR" -C "$DESTINATION"
-    echo "INFO: Successfully downloaded and extracted raylib v$VERSION for $PLATFORM"
-else
+if ! wget -q "$REMOTE_TAR" -O "$LOCAL_TAR"; then
     echo "ERROR: Failed to download raylib version $VERSION for platform $PLATFORM." >&2
     exit 1
 fi
+
+# Extract into a temp dir: the tarball contains a versioned top-level
+# directory (e.g. raylib-6.2_macos/), but the build flags expect
+# $DESTINATION/raylib/{include,lib}
+EXTRACT_DIR="$DESTINATION/.raylib-extract"
+rm -rf "$EXTRACT_DIR"
+mkdir -p "$EXTRACT_DIR"
+tar xzf "$LOCAL_TAR" -C "$EXTRACT_DIR"
+
+TOP_DIR="$(find "$EXTRACT_DIR" -mindepth 1 -maxdepth 1 -type d | head -n 1)"
+if [ -z "$TOP_DIR" ]; then
+    echo "ERROR: Unexpected raylib archive layout." >&2
+    exit 1
+fi
+
+rm -rf "$DESTINATION/raylib"
+mv "$TOP_DIR" "$DESTINATION/raylib"
+rm -rf "$EXTRACT_DIR"
+
+echo "INFO: Successfully downloaded and extracted raylib v$VERSION for $PLATFORM"

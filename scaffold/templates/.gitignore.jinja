@@ -4,8 +4,7 @@
 /out/
 /dist/
 
-# --- Fetched Dependencies ---
-/deps/
+# --- Binaries ---
 *.exe
 *.out
 *.app
@@ -46,3 +45,7 @@ Makefile.in
 # --- OS Specific ---
 .DS_Store
 Thumbs.db
+
+# --- Dependencies (fetched at scaffold time, committed to the repo) ---
+# Overrides *.a/*.so/*.dylib etc. above so fetched libs stay tracked
+!/deps/**

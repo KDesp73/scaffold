@@ -184,9 +184,14 @@ class ProjectBuilder:
         deps_dir = settings.deps_dir
         active_deps = self._active_deps(struct_deps)
 
+        # Actually download each dependency into the project's deps directory
+        # (fetched once at scaffold time; nothing is copied into the project).
         for key in active_deps:
-            if not self.store.install(key, self.root, scripts_dir="tools/deps"):
-                print(f"[WARN] Could not install dependency '{key}' from the store")
+            if not self.store.fetch(key, self.root / deps_dir):
+                print(
+                    f"[WARN] Could not fetch dependency '{key}' — "
+                    "the project may not build until it is available"
+                )
 
         dep_cflags, dep_ldflags = self.store.dep_flags(active_deps, deps_dir)
 

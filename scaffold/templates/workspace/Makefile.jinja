@@ -26,8 +26,6 @@ LIB_ARCH = $(foreach lib,$(LIBS),$(LIBS_DIR)/$(lib)/lib$(lib).a)
 
 CFLAGS += -I$(INCLUDE_DIR) $(foreach lib,$(LIBS),-I$(LIBS_DIR)/$(lib)/include) -MMD -MP
 {% if deps %}
-DEPS = {{ deps | join(' ') }}
-DEPS_SCRIPTS_DIR = tools/deps
 CFLAGS  += -I$(DEPS_DIR) {{ dep_cflags }}
 LDFLAGS += {{ dep_ldflags }}
 {% endif %}
@@ -81,15 +79,6 @@ test: libs $(OBJ) ## Build and run the root tests
 		echo "[RUN] $$name"; \
 		$(BUILD_DIR)/test_$$name; \
 	done
-
-{% if deps %}
-.PHONY: fetch
-fetch: ## Fetch all dependencies into $(DEPS_DIR)
-	@set -e; for dep in $(DEPS); do \
-		echo "[INFO] Fetching $$dep"; \
-		bash $(DEPS_SCRIPTS_DIR)/$$dep/fetch $(DEPS_DIR); \
-	done
-{% endif %}
 
 .PHONY: clean
 clean: ## Remove all build files and apps

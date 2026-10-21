@@ -7,7 +7,7 @@ Opinionated C project starter — scaffolds pure-Makefile C projects (no CMake).
 - Python 3.11+
 - GNU Make
 - A C compiler (`cc`/`gcc`/`clang`)
-- `wget` or `curl` (only for `make fetch`, i.e. downloading dependencies)
+- `wget` (only for fetching dependencies at scaffold time)
 
 ## Install
 
@@ -43,7 +43,9 @@ scaffold new myapp  --type cli --deps logging.h    # add optional deps
 Dependencies are looked up in the bundled store (`cli.h`, `ansi.h`,
 `logging.h`, `raylib`). Fixed (`!dep:`) dependencies of the chosen type are
 always included; optional (`?dep:`) ones are only added when requested with
-`--deps`.
+`--deps`. Each selected dependency's fetch script runs during
+`scaffold new`, downloading it straight into the project's deps directory
+(`deps/` by default, configurable via `deps_dir` in `scaffold.yaml`).
 
 ### What you get
 
@@ -54,8 +56,9 @@ gui:      like cli, with raylib wired up
 workspace: root Makefile orchestrating libs/ (core_lib) and apps/{cli,test,bench,gui}
 ```
 
-Every project also ships `.gitignore`, `README.md`, and fetch scripts for its
-dependencies under `tools/deps/`.
+Every project also ships `.gitignore` and `README.md`. Dependencies are
+fetched into the deps directory while scaffolding, so they are ready to
+build immediately and can be committed to version control.
 
 ## Building generated projects
 
@@ -65,7 +68,6 @@ make help        # list all targets (bare `make` does the same)
 make             # same as `make help`
 make all         # build
 make test        # lib/workspace: build and run tests
-make fetch       # download dependencies into deps/
 make clean       # remove build artifacts
 make all type=RELEASE   # optimized build (default is debug + sanitizers)
 ```
