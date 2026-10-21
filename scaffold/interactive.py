@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import argparse
 import re
+import sys
 from pathlib import Path
 
 from scaffold.store import Store
@@ -20,8 +21,8 @@ from scaffold.structure import ProjectBuilder, ProjectType
 
 NAME_PATTERN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*$")
 
-# Order shown in the type menu
-_TYPE_ORDER = [
+# Order shown in the type menu (inline and plain)
+TYPE_ORDER = [
     ProjectType.CLI,
     ProjectType.LIBRARY,
     ProjectType.GUI,
@@ -69,17 +70,17 @@ def _ask_name() -> str:
 
 def _ask_type() -> ProjectType:
     print("Project type:")
-    for i, ptype in enumerate(_TYPE_ORDER, 1):
+    for i, ptype in enumerate(TYPE_ORDER, 1):
         print(f"  {i}) {ptype.value}")
 
     while True:
-        answer = _ask(f"Choose [1-{len(_TYPE_ORDER)} or name]: ").lower()
-        for i, ptype in enumerate(_TYPE_ORDER, 1):
+        answer = _ask(f"Choose [1-{len(TYPE_ORDER)} or name]: ").lower()
+        for i, ptype in enumerate(TYPE_ORDER, 1):
             if answer == str(i) or answer == ptype.value:
                 return ptype
         print(
             "[WARN] Choose one of: "
-            + ", ".join(f"{i}) {t.value}" for i, t in enumerate(_TYPE_ORDER, 1))
+            + ", ".join(f"{i}) {t.value}" for i, t in enumerate(TYPE_ORDER, 1))
         )
 
 
@@ -122,8 +123,29 @@ def _ask_deps(label: str, options: list[str]) -> list[str]:
 def run_wizard() -> argparse.Namespace | None:
     """Ask questions until a project can be created.
 
+    On a TTY this shows inline "pretty menus" in the style of the
+    ``npx create-*`` tools (:mod:`scaffold.menus`); on pipes/CI — or when
+    the terminal cannot drive them — it falls back to plain line prompts.
+
     Returns the arguments for `cli.cmd_new`, or None if the user cancelled.
     """
+    if sys.stdin.isatty() and sys.stdout.isatty():
+        try:
+            from scaffold import menus  # deferred: menus imports this module
+        except ImportError:
+            pass  # termios/tty not available (e.g. bare Windows)
+        else:
+            if menus.AVAILABLE:
+                try:
+                    return menus.run()
+                except menus.Unavailable as e:
+                    print(f"[WARN] Menus unavailable ({e}), using plain prompts\n")
+
+    return _run_plain()
+
+
+def _run_plain() -> argparse.Namespace | None:
+    """Line-based prompts for non-TTY sessions and menu fallbacks."""
     print("Interactive setup — answer the questions to create your project.")
     print("(Ctrl+C aborts)\n")
 
