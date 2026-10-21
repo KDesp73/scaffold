@@ -7,9 +7,9 @@ no prefix, with or without indentation  -> file | directory
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
 from enum import Enum
-import re
 from pathlib import Path
 
 from jinja2 import Environment, FileSystemLoader, TemplateNotFound

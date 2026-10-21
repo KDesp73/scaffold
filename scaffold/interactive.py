@@ -168,7 +168,7 @@ def _run_plain() -> argparse.Namespace | None:
             print(f"\nType '{project_type.value}' has no optional dependencies")
 
         # Everything the store still offers (fixed + already selected excluded)
-        pool = [k for k in Store().keys() if k not in set(fixed) | set(selected)]
+        pool = [k for k in Store() if k not in set(fixed) | set(selected)]
         extra: list[str] = []
         if pool:
             print()

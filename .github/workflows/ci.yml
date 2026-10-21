@@ -23,7 +23,7 @@ jobs:
         with:
           python-version: ${{ matrix.python }}
 
-      - name: Install devdocs with test dependencies
+      - name: Install package with dev dependencies
         run: python -m pip install -e ".[dev]"
 
       - name: Lint

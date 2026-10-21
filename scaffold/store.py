@@ -13,9 +13,10 @@ may contain:
 
 from __future__ import annotations
 
+import subprocess
+from collections.abc import Iterator
 from dataclasses import dataclass, field
 from pathlib import Path
-import subprocess
 
 from scaffold.resources import STORE_DIR
 
@@ -42,7 +43,7 @@ class Store:
     def __post_init__(self) -> None:
         self.load()
 
-    def load(self) -> "Store":
+    def load(self) -> Store:
         self.registry.clear()
         if not self.root.is_dir():
             return self
@@ -53,8 +54,12 @@ class Store:
             self.registry[entry.name] = Dependency(key=entry.name, path=entry)
         return self
 
+    def __iter__(self) -> Iterator[str]:
+        """Iterate over the package keys, like the underlying registry."""
+        return iter(self.registry)
+
     def keys(self) -> list[str]:
-        return list(self.registry.keys())
+        return list(self)
 
     def get(self, key: str) -> Dependency | None:
         return self.registry.get(key)
@@ -86,7 +91,7 @@ class Store:
         if platform is not None:
             cmd.append(platform)
 
-        return subprocess.run(cmd).returncode == 0
+        return subprocess.run(cmd, check=False).returncode == 0
 
     def dep_flags(self, keys: list[str], deps_dir: str) -> tuple[list[str], list[str]]:
         """Return (cflags, ldflags) for the given deps, `{deps}` substituted."""

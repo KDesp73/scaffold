@@ -8,3 +8,5 @@ venv/
 *__pycache__*
 *.pyc
 *.typed
+# ...but the PEP 561 marker for the package itself must be shipped.
+!scaffold/py.typed

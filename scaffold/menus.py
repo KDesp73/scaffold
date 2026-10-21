@@ -412,7 +412,7 @@ def run() -> argparse.Namespace | None:
         else:
             print(_dim(f"Type '{ptype.value}' has no optional dependencies"))
 
-        pool = [k for k in Store().keys() if k not in set(fixed) | set(selected)]
+        pool = [k for k in Store() if k not in set(fixed) | set(selected)]
         extra: list[str] = []
         if pool:
             picked = _menu("Extra dependencies", pool, multi=True)
