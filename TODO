@@ -1,0 +1,6 @@
+TODO: Add more dependencies in store [SDL, ImGUI, libcurl, openssl, zlib, libuv, sqlite, glibc, musl, gsl, gmp etc]
+TODO: improve current structs and add more [Improve templates based on my actual projects]
+TODO: Docs [Function/Class definitions with tinydocs markers and md docs explaining decisions, struct format and project direction]
+TODO: One-line installation [Bash script to curl and install the tool]
+TODO: Webpage [Site showcasing the tool and display the available dependencies in store]
+TODO: Post-scaffold dependency fetch [Fetch and setup dependencies after the project has been created]
