@@ -1,11 +1,9 @@
 import argparse
-import re
 import sys
 from pathlib import Path
 
+from scaffold.interactive import run_wizard, validate_name
 from scaffold.structure import ProjectBuilder, ProjectType
-
-NAME_PATTERN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*$")
 
 
 def parse_cli(argv: list[str] | None = None) -> argparse.Namespace:
@@ -35,14 +33,6 @@ def parse_cli(argv: list[str] | None = None) -> argparse.Namespace:
     return parser.parse_args(argv)
 
 
-def validate_name(name: str) -> None:
-    if not NAME_PATTERN.match(name):
-        raise ValueError(
-            f"Invalid project name '{name}'. "
-            "Use letters, digits, '.', '_' or '-' and start with a letter or digit."
-        )
-
-
 def cmd_new(args: argparse.Namespace) -> int:
     try:
         validate_name(args.name)
@@ -70,6 +60,16 @@ def cmd_new(args: argparse.Namespace) -> int:
 
 
 def main(argv: list[str] | None = None) -> int:
+    if argv is None:
+        argv = sys.argv[1:]
+
+    # No arguments at all: run the interactive wizard
+    if not argv:
+        args = run_wizard()
+        if args is None:
+            return 1
+        return cmd_new(args)
+
     args = parse_cli(argv)
 
     if args.cmd == "new":

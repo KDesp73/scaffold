@@ -30,6 +30,10 @@ scaffold --help
 scaffold new <name> --type <cli|lib|gui|workspace> [--deps <lib1,lib2>]
 ```
 
+Run `scaffold` with no arguments to get an interactive wizard that asks for
+the name, the project type, which optional dependencies to install, and any
+extra dependencies from the store, then creates the project for you.
+
 Examples:
 
 ```bash
